@@ -17,7 +17,7 @@
       enabled: yes
   - name: replace the ip address with all 
     ansible.builtin.replace:
-      path: /etc/mongodb.conf
+      path: /etc/mongod.conf
       regexp: '127.0.0.1'
       replace: '0.0.0.0'
   - name: restart the mongodb module 
