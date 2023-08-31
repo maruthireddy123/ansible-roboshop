@@ -14,7 +14,7 @@
     ansible.builtin.service:
       name: mongodb
       state: started
-      enable: yes
+      enabled: yes
   - name: replace the ip address with all 
     ansible.builtin.service:
       path: /etc/mongodb.conf
