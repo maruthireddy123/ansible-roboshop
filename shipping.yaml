@@ -63,6 +63,9 @@
       name: mysql
       state: installed
 
+  ##- name: load mysql schema
+   ## ansible.builtin.shell: mysql -h mysql.maruthi.shop -uroot -pRoboShop@1 < /app/schema/shipping.sql 
+  
   - name: restart shipping
     ansible.builtin.service:
       name: shipping
