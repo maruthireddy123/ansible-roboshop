@@ -9,29 +9,25 @@
 
   - name: check roboshop user exist or not
     ansible.builtin.command: id roboshop
-    register: out #output is variable name
+    register: out
     ignore_errors: true
 
-  - when: out.rc != 0
-    name: create user roboshop
-    become: yes # we need sudo access for this task only
+  - name: create user roboshop if not exists
     ansible.builtin.user:
       name: roboshop
+    when: out.rc != 0
+    become: yes
 
   - name: check /app directory exists or not
     ansible.builtin.stat:
       path: /app
     register: directory
 
-  - name: print the directory stats
-    ansible.builtin.debug:
-      msg: "output: {{directory}}"
-
-  - when: directory.stat.exists == False
-    name: create /app directory
+  - name: create /app directory if not exists
     ansible.builtin.file:
       path: /app
       state: directory
+    when: directory.stat.exists == False
 
   - name: Download shipping and extract
     ansible.builtin.unarchive:
@@ -39,22 +35,32 @@
       dest: /app
       remote_src: yes
 
-  - name: maven package
+  - name: Ensure shipping.sql exists after extraction
+    ansible.builtin.stat:
+      path: /app/schema/shipping.sql
+    register: shipping_sql_stat
+
+  - name: Fail if shipping.sql file does not exist
+    ansible.builtin.fail:
+      msg: "shipping.sql file not found in /app/schema"
+    when: not shipping_sql_stat.stat.exists
+
+  - name: Maven package
     ansible.builtin.command: mvn clean package
     args:
       chdir: /app
 
-  - name: rename jar file
+  - name: Rename jar file
     ansible.builtin.command: mv target/shipping-1.0.jar shipping.jar
     args:
       chdir: /app
 
-  - name: copy shipping service
+  - name: Copy shipping service
     ansible.builtin.copy:
       src: shipping.service
       dest: /etc/systemd/system/shipping.service
 
-  - name: deamon reload
+  - name: Reload systemd daemon
     ansible.builtin.systemd:
       daemon_reload: true
 
@@ -63,10 +69,10 @@
       name: mysql
       state: installed
 
-  - name: load mysql schema
-    ansible.builtin.shell: mysql -h mysql.maruthi.shop -uroot -pRoboShop@1 < /app/schema/shipping.sql 
-  
-  - name: restart shipping
+  - name: Load MySQL schema
+    ansible.builtin.shell: mysql -h mysql.maruthi.shop -uroot -pRoboShop@1 < /app/schema/shipping.sql
+
+  - name: Restart shipping service
     ansible.builtin.service:
       name: shipping
       state: restarted
